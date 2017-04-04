@@ -1,18 +1,259 @@
+<!DOCTYPE html>
 <html>
 	<head>
-		<script src="js/mail-generator.js"></script>
+		<script type="text/javascript" src="js/mail-generator.js"></script>
+		<link href="//fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700|Roboto:400,300,700,500,100" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Covered+By+Your+Grace|Raleway:100,500,600,800" rel="stylesheet">
 		<link href="css/style.css" rel="stylesheet" media="screen">
-    <script>
-      window.onload = function(){
+    	<script>
+    	window.onload = function(){
+    	console.log('we are in the onload function!');
         // ALL OF YOUR JAVASCRIPT CODE SHOULD GO HERE. 
         // We have to use window.onload so your JavaScript doesn't execute until the page has loaded and all HTML has been downloaded to your browser
+
+      
+      // this is the code that generates a table and populates with Geemails
+  		var tableBody = document.getElementById('tableBody');
+  		
+      var existingGeemails = window.geemails.length;
+
+      for (var i=0; i<existingGeemails; i++){
+          var tr = document.createElement('tr');
+          tr.className = "readEmail";
+          tr.onclick = openNewEmail;
+          tableBody.insertBefore(tr, tableBody.firstElementChild);
+          //tableBody.appendChild(tr);
+            var senderText = document.createElement('td');
+            senderText.innerHTML = window.geemails[i].sender;
+            tr.appendChild(senderText);
+            
+            var subjectText = document.createElement('td');
+            subjectText.innerHTML = window.geemails[i].subject;
+            tr.appendChild(subjectText);
+
+            var bodyText = document.createElement('td');
+            bodyText.className = "bodyPreview";
+            bodyText.innerHTML = window.geemails[i].body.substring(0,80) + '...';
+            tr.appendChild(bodyText);
+
+            var dateText = document.createElement('td');
+            var dateTextShort = window.geemails[i].date + ' '; // for some reason wasn't working before I added the ' ' - maybe wasn't being treated as a string?
+            dateText.innerHTML = dateTextShort.substring(0,24);
+            tr.appendChild(dateText);
+      }
+ 
+      // this section of code deals with setting up a count for total and "new" emails 
+      var newEmailsCountHolder = document.getElementById('inboxCount');
+      var newEmailsCount = 0;
+      newEmailsCountHolder.innerHTML = newEmailsCount;
+
+      var countHolder = document.getElementById('countHolder');
+      var inboxCount = window.geemails.length;
+      countHolder.innerHTML = inboxCount;
+
+
+      // recreated the generateMessage & getRandomElement functions here to be able to call it, since it's local to the overall function in .js file
+      // this was needed because referencing window.getNewMessage in setInterval was returning same value, since it's an object and not a function
+      function generateMessage(){
+        var message = {};
+        message.date = Date();
+        message.subject = getRandomElement(subject);
+        message.sender = getRandomElement(sender);
+        message.body = getRandomElement(body);
+        return message;
+      }
+
+      function getRandomElement(arr){
+      return arr[Math.floor(Math.random() * arr.length)];
+      }
+ 
+      
+      // this section of code adds a new row to the top of the table and populates it with the new message, and adds to new and total email counters
+      // for the purpose of this exercise, I made all emails from Geemails object "old"(opened) and the newly generated emails from the setInerval function "new" 
+
+        var z = 0;
+        // used this simpler version of setInterval function for testing purposes 
+        /*var setIntervalId = setInterval (function() {
+          var randomNumber = Math.floor(Math.random()*100+1);
+          var newMessage = generateMessage();
+          var newSender = newMessage.sender;
+          console.log(randomNumber + newSender);
+          z++;
+            if (z === 5){
+              clearInterval(setIntervalId);
+              console.log('cleared interval');
+            } 
+          },1000);*/
         
-      };
-    </script>
+
+        var setIntervalId = setInterval(function(){
+          
+          var newRow = document.createElement('tr');
+          newRow.className = "newEmail"; // to enable "new" (unopened) emails to have a distinct look
+          newRow.onclick = openNewEmail;
+          tableBody.insertBefore(newRow, tableBody.firstElementChild);
+
+          var newMessage = generateMessage();
+          window.geemails.push(newMessage);
+          inboxCount = window.geemails.length;
+
+          var senderNew = document.createElement('td');
+          senderNew.innerHTML = window.geemails[inboxCount-1].sender;
+          newRow.appendChild(senderNew);
+            
+          var subjectNew = document.createElement('td');
+          subjectNew.innerHTML = window.geemails[inboxCount-1].subject;
+          newRow.appendChild(subjectNew);
+
+          var bodyNew = document.createElement('td');
+          bodyNew.className = "bodyPreview"; // to enable body preview to be a different color 
+          //bodyNew.id = "myPopUp";
+          bodyNew.innerHTML = window.geemails[inboxCount-1].body.substring(0,80) + '...'; 
+          newRow.appendChild(bodyNew);
+
+          var dateNew = document.createElement('td');
+          dateNew.innerHTML = window.geemails[inboxCount-1].date.substring(0,24);
+          newRow.appendChild(dateNew);  
+          
+          // this is old code that I used at first, but the issue with it is that it doesn't "store" the new message that's generated - a problem for opening emails
+          /*
+          var senderNew = document.createElement('td');
+          senderNew.innerHTML = generateMessage().sender;
+          newRow.appendChild(senderNew);
+
+          var subjectNew = document.createElement('td');
+          subjectNew.innerHTML = generateMessage().subject;
+          newRow.appendChild(subjectNew);
+
+          var bodyNew = document.createElement('td');
+          bodyNew.className = "bodyPreview"; // to enable body preview to be a different color 
+          //bodyNew.id = "myPopUp";
+          bodyNew.innerHTML = generateMessage().body.substring(0,80) + '...'; 
+          newRow.appendChild(bodyNew);
+
+          var dateNew = document.createElement('td');
+          dateNew.innerHTML = generateMessage().date.substring(0,24);
+          newRow.appendChild(dateNew);*/ 
+
+          newEmailsCount++;
+          newEmailsCountHolder.innerHTML = newEmailsCount;
+          countHolder.innerHTML = inboxCount;
+
+          z++;
+
+            if (z === 5){ // opted to stop the setInterval function after downloading five new emails
+              clearInterval(setIntervalId);
+            }
+
+          }, 7000); 
+
+
+        // this function was used to change CSS class of "new" emails on click to reflect that the email has been "opened"
+        // this function also reduces the count of "new"(unopened) emails 
+        // I noticed that clicking more than once on the email (while wasn't an issue for its CSS class) kept reducing the new email counter below 0
+        // so I added a conditional statement to only reduce counter when a "new" email was clicked
+        
+        function openNewEmail() {
+          if (this.className === "newEmail"){
+              newEmailsCount--;
+              newEmailsCountHolder.innerHTML = newEmailsCount;
+            } 
+            this.className = "readEmail";
+            
+            modal.style.display = "block";
+
+            var rowNumber = this.rowIndex;
+
+            var length = window.geemails.length;
+
+            var position = length - rowNumber;
+
+            var popupSender = document.getElementById('popupSender');
+            popupSender.innerHTML = window.geemails[position].sender;
+
+            var popupSubject = document.getElementById('popupSubject');
+            popupSubject.innerHTML = window.geemails[position].subject;
+
+            var popupDate = document.getElementById('popupDate');
+            var dateShort = window.geemails[position].date + ' ';
+            popupDate.innerHTML = dateShort.substring(0,24);
+
+            var popupBody = document.getElementById('popupBody');
+            popupBody.innerHTML = window.geemails[position].body;
+          }
+
+          // Get the modal
+          var modal = document.getElementById('myModal');
+
+          // Get the <span> element that closes the modal
+          var closeButton = document.getElementsByClassName("close")[0];
+
+          // When the user clicks on (x), close the modal
+          closeButton.onclick = function() {
+              modal.style.display = "none";
+          }
+
+          // When the user clicks anywhere outside of the modal, close it
+          window.onclick = function(event) {
+              if (event.target == modal) {
+                  modal.style.display = "none";
+              }
+          }
+
+      }
+       
+    	</script>
+    	<title>Gee-Mail</title>
 	</head>
 	<body>
 		<div class="container" id="main">
-			Build Me!
+			<div class="left">
+				<div class="bottom">
+					<ul id="folders">Folders
+						<li>Inbox (<span id="inboxCount"></span>)</li>
+						<li>Sent</li>
+						<li>Drafts</li>
+						<li>From Mom</li>
+					</ul>
+				</div>
+			</div>
+			<div class="right">
+        <div class="heading">
+					<h1>Welcome to Gee-Mail</h1>
+					<h2>Cuz why for all those features?</h2>
+        </div>
+				<div id="myTable">
+						<table id="emailTable">
+							<thead>
+								<tr class="headrow">
+									<th>From</th>
+									<th>Subject</th>
+									<th>Content</th>
+									<th>Date</th>
+								</tr>
+							</thead>
+              <tbody id="tableBody">
+              </tbody>
+						</table>
+            <p></p>
+				</div>
+			</div>
+      <div>
+          <p class = "footer">You have <span id="countHolder"></span> emails.</p>
+      </div>  
+      <!-- The Modal -->
+      <div id="myModal" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <p class="popupHeadings">From: <span id="popupSender">Sample Sender</span></p>
+          <p class="popupHeadings">Subject: <span id="popupSubject">Sample Subject</span></p>
+          <p class="popupHeadings">Date: <span id="popupDate">Sample/Date/Year</span></p>
+          <div class="popupBodyContent">
+            <p class="popupBody"><span id="popupBody">Sample body</span></p>
+          </div>
+        </div>
+      </div>
 		</div>
 	</body>
 </html>
